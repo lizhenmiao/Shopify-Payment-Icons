@@ -108,15 +108,19 @@
         transform: rotate(360deg);
       }
     }
+
   </style>
 </head>
 
 <body>
+
   <div id="loading">
     <div class="loader"></div>
   </div>
   <div id="svgContainer"></div>
-  <script>
+
+  <script type="module">
+    import { iconsList } from './icon.js';
     const loading = document.getElementById('loading');
 
     function showLoading() {
@@ -126,52 +130,74 @@
     function hideLoading() {
       loading.classList.remove('show');
     }
+
     showLoading();
-    // 使用 Fetch API 获取文件列表
-    fetch('assets/')
-      .then(response => response.text())
-      .then(data => {
-        // 解析文件列表
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(data, 'text/html');
-        const fileList = Array.from(doc.querySelectorAll('a')).map(a => a.href);
 
-        // 过滤出 SVG 文件
-        const svgFiles = fileList.filter(file => file.endsWith('.svg'));
-
-        // 并行加载并展示 SVG 文件
-        const fetchPromises = svgFiles.map(svgFile => fetch(svgFile)
-          .then(response => response.text())
-          .then(svgData => {
-            return {
-              data: svgData,
-              title: svgFile
-            }
-          }));
-        Promise.all(fetchPromises)
-          .then(svgDataArray => {
-            // 将所有 SVG 添加到容器中
-            const svgContainer = document.getElementById('svgContainer');
-            svgDataArray.forEach(svgData => {
-              const div = document.createElement('div');
-              div.classList.add('svg-item');
-              const text = document.createElement('p');
-              text.classList.add('svg-title');
-              text.textContent = (svgData.title.split('/').pop()).replace('.svg', '');
-              div.innerHTML = svgData.data + '<br/>' + text.outerHTML;
-              svgContainer.innerHTML += div.outerHTML;
-            });
-            hideLoading();
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            hideLoading();
+    // 展示 SVG
+    function showSvg(svgFiles) {
+      // 并行加载并展示 SVG 文件
+      const fetchPromises = svgFiles.map(svgFile => fetch(svgFile)
+        .then(response => response.text())
+        .then(svgData => {
+          return {
+            data: svgData,
+            title: svgFile
+          }
+        }));
+      Promise.all(fetchPromises)
+        .then(svgDataArray => {
+          // 将所有 SVG 添加到容器中
+          const svgContainer = document.getElementById('svgContainer');
+          svgDataArray.forEach(svgData => {
+            const div = document.createElement('div');
+            div.classList.add('svg-item');
+            const text = document.createElement('p');
+            text.classList.add('svg-title');
+            text.textContent = (svgData.title.split('/').pop()).replace('.svg', '');
+            div.innerHTML = svgData.data + '<br/>' + text.outerHTML;
+            svgContainer.innerHTML += div.outerHTML;
           });
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        hideLoading();
-      });
+          hideLoading();
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          hideLoading();
+        });
+    }
+
+    if (window.location.hostname.includes('github.io')) {
+      // 当前页面运行在 GitHub Pages 环境中
+      showSvg(iconsList);
+    } else {
+      // 当前页面不是在 GitHub Pages 环境中
+      // 使用 Fetch API 获取文件列表
+      fetch('assets/')
+        .then(response => response.text())
+        .then(data => {
+          // 解析文件列表
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(data, 'text/html');
+          const fileList = Array.from(doc.querySelectorAll('a')).map(a => a.href);
+
+          // 过滤出 SVG 文件
+          const svgFiles = fileList.filter(file => file.endsWith('.svg'));
+          // 获取当前页面的 host
+          const host = window.location.host;
+          // 获取是 https:// 或 http://
+          const protocol = window.location.protocol;
+          // 网站路径为
+          const url = `${protocol}//${host}/`;
+          // 获取所有 svg 的相对路径
+          const svgPaths = svgFiles.map(svgFile => svgFile.replace(url, ''));
+          console.log('svgPaths===', svgPaths);
+
+          showSvg(svgFiles);
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          hideLoading();
+        });
+    }
   </script>
 </body>
 
